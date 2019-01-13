@@ -3,7 +3,7 @@ from numpy import array, zeros, diag, diagflat, dot
 def jacobi(A, f, maxIter=225, x=None, eps=1e-3):
     """
     A - заданная матрица, f - столбец справа от нуля,
-    eps -  предпологаемая погрешность, x - начальное приблежение.
+    eps -  предпологаемая погрешность, x - начальное приближение.
     """
     if x is None:
         x = zeros(len(A[0]))
