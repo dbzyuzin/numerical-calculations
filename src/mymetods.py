@@ -45,3 +45,13 @@ def simple_iter_koef(A):
 
 def simple_iter_count(eps, mu):
     return int(1 + np.round(-np.log(eps)/np.log((mu+1)/(mu-1))))
+
+def final_error(theory, solution):
+    eps = 0
+    N, M = np.shape(theory)
+    for i in range(0, N):
+        for j in range(0, M):
+            d = np.abs(solution[i,j]-theory[i,j])
+            if d > eps:
+                eps = d
+    return eps
