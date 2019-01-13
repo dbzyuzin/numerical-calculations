@@ -38,6 +38,7 @@ def jacobi_test():
     return res
 
 def simple_iter_koef(A):
+    A = np.transpose(np.diag(A))*A
     eigs, _ = np.linalg.eig(np.abs(A))
     lambmin = np.min(eigs)
     lambmax = np.max(eigs)
