@@ -46,6 +46,16 @@ def simple_iter_koef(A):
 def simple_iter_count(eps, mu):
     return int(1 + np.round(-np.log(eps)/np.log((mu+1)/(mu-1))))
 
+def edge_computing(ys, u, X):
+    x1, x2 = X
+    N, M = np.shape(ys)
+    for i in range(0, N):
+        ys[i, 0] = u(x1[i],0)
+        ys[i, -1] = u(x1[i],1)
+    for i in range(0, M):
+        ys[0, i] = u(0, x2[i])
+        ys[-1, i] = u(1, x2[i])
+
 def final_error(theory, solution):
     eps = 0
     N, M = np.shape(theory)
