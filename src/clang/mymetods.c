@@ -2,7 +2,7 @@
 #include <math.h>
 #include "mymetods.h"
 
-double* linspace(int xa, int xb, int N) 
+double* linspace(int xa, int xb, int N)
 {
 	double *x = calloc(N, sizeof(double));
     double h = (xb - xa)/(double)(N-1);
@@ -12,14 +12,14 @@ double* linspace(int xa, int xb, int N)
 	return x;
 }
 
-double test_solution(double** ys, double*** Cs, double** F, const size_t N1, const size_t N2) 
+double test_solution(double** ys, double*** Cs, double** F, const size_t N1, const size_t N2)
 {
     double rka = 0.0;
 
     for (int i = 1; i < N1-1; i++){
         for (int j = 1; i < N2-1; i++){
-            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] + 
-                      + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] + 
+            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
+                      + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
                       + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
 		}
 	}
@@ -27,21 +27,36 @@ double test_solution(double** ys, double*** Cs, double** F, const size_t N1, con
     return rka;
 }
 
-double dmax(const double x1, const double x2) 
+double dmax(const double x1, const double x2)
 {
 	if (x1 > x2)
 		return x1;
 	return x2;
 }
 
-void print_res(const int N1, const int N2, 
+void print_res(const int N1, const int N2,
                 const double h1, const double h2,
-                const double eps, const int iter_count, const double rka) 
+                const double eps, const int iter_count, const double rka)
 {
     printf("Параметры :\n\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
 	printf("%7d %7d %7.3f %7.3f %8.0e\n\n",N1, N2, h1, h2, eps);
 	printf("Результаты:\n\n %10s %24s \n", "Iter count", "Max Fail");
 	printf(" %10d %24.10f\n", iter_count, rka);
+}
+void fprint_res(const int N1, const int N2,
+                const double h1, const double h2,
+                const double eps, const int iter_count, const double rka)
+{
+	FILE *f = fopen("test.txt", "a");
+	if (f == NULL){
+	    printf("Error opening file!\n");
+		return;
+	}
+	fprintf(f, "Параметры :\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
+	fprintf(f, "%7d %7d %7.3f %7.3f %8.0e\n\n",N1, N2, h1, h2, eps);
+	fprintf(f, "Результаты:\n %10s %24s \n", "Iter count", "Max Fail");
+	fprintf(f, " %10d %24.10f\n", iter_count, rka);
+
 }
 
 void solution(const double* restrict x1, const size_t N1,
