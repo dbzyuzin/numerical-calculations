@@ -66,7 +66,6 @@ int main(int argc, char const *argv[])
         }
     }
 
-
     //Задаем точное решение
     solution(x1, N1, x2, N2, ysol);
 
