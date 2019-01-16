@@ -12,6 +12,13 @@ double* linspace(int xa, int xb, int N) {
 }
 
 
+double dmax(double x1, double x2) {
+	if (x1 > x2) {
+		return x1;
+	} else {
+		return x2;
+	}
+}
 
 void print_res(int N1, int N2, double h1, double h2, double eps, int iter_count, double rka) {
     printf("Параметры :\n\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
