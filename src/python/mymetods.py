@@ -15,7 +15,8 @@ def make_res(N1, N2, h1, h2, eps, iter_count, yerr, flag=True):
         s += " {: ^12}{: ^24.15f}\n{}\n".format(iter_count, np.max(yerr), "="*72)
     return s
 
-def edge_computing(ys, u, x1, x2):
+def edge_computing(double *ys, double (*u)(const double, const double), double* x1, size_t N1, 
+            double* x2, size_t N2) {
     N1, N2 = np.shape(ys)
     for i, x in enumerate(x1):
         ys[i, 0] = u(x,0)
@@ -23,6 +24,7 @@ def edge_computing(ys, u, x1, x2):
     for i, x in enumerate(x2):
         ys[0, i] = u(0, x)
         ys[-1, i] = u(1, x)
+}
 
 def final_error(ys, ysol):
     yerr = ys.copy()
