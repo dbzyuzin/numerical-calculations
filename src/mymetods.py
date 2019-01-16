@@ -1,4 +1,6 @@
 import numpy as np
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def make_res(N1, N2, h1, h2, eps, iter_count, yerr, flag=True):
     if flag:
@@ -48,4 +50,4 @@ def my3d_plot(zdata, x1, x2):
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(X, Y, zdata, color='0.75', rstride=1, cstride=1, cmap="magma")
     ax.view_init(elev=10., azim=0)
-    plt.show()    
+    plt.show()
