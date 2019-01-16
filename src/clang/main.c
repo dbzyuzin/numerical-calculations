@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     coords[0] = 0; coords[1] = 1;
     
     ret = MPI_Init(&argc, &argv);
-    if (!ret)
+    if (ret)
         goto on_error;
     MPI_Comm_size(MPI_COMM_WORLD,&np);
     MPI_Comm_rank(MPI_COMM_WORLD,&mp);
@@ -42,6 +42,7 @@ int main(int argc, char const *argv[])
     free(x2);
     return 0;
 on_error:
+    MPI_Finalize();
     free(x1);
     free(x2);
     return -1;
