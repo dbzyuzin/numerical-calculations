@@ -24,3 +24,10 @@ def u(x1, x2):
 
 def f(u):
     return np.pi**2*u**3
+
+def solution(u, x1, x2):
+    ysol = np.zeros((len(x1), len(x2)))
+    for i in range(N1):
+        for j in range(N2):
+            ysol[i,j] = u(x1[i],x2[j])
+    return ysol
