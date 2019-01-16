@@ -14,12 +14,7 @@ ys = np.zeros((N1, N2))
 Cs = [[list() for _ in range(N1)] for _ in range(N2)]
 F = np.zeros((N1, N2))
 
-for i, x in enumerate(x1):
-    ys[i, 0] = u(x,0)
-    ys[i, -1] = u(x,1)
-for i, x in enumerate(x2):
-    ys[0, i] = u(0, x)
-    ys[-1, i] = u(1, x)
+edge_computing(ys, u, x1, x2)
 
 for iter_count in range(maxiter):
     #iter coef
@@ -68,9 +63,9 @@ for i in range(N1):
         yerr[i, j] = abs(ysol[i, j]-ys[i, j])
 
 # выводим количество итераций и максимальную ошибку
-print(iter_count)
-print(max([max(er) for er in yerr]))
-
+print(make_res(N1, N2, h1, h2, eps, iter_count, yerr))
+with open("test.txt", "a") as f:
+    f.write(make_res(N1, N2, h1, h2, eps, iter_count, yerr, False))
 #заготовка построения графиков
 def my3d_plot(zdata, x1, x2):
     X, Y = np.meshgrid(x1, x2)

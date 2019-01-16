@@ -1,6 +1,6 @@
 import numpy as np
 
-N1, N2 = 50, 50
+N1, N2 = 20, 20
 x1 = np.linspace(0, 1, N1)
 x2 = np.linspace(0, 1, N2)
 h1 = 1/N1
