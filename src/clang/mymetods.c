@@ -11,6 +11,19 @@ double* linspace(int xa, int xb, int N) {
 	return x;
 }
 
+double test_solution(double **ys, double ***Cs, double **F,int N1,int N2) {
+    double rka = 0.0
+
+    for (int i = 1; i < N1-1; i++){
+        for (int j = 1; i < N2-1; i++){
+            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] + \
+                      + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] + \
+                      + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]))
+		}
+	}
+
+    return rka;
+}
 
 double dmax(const double x1, const double x2) {
 	if (x1 > x2)
