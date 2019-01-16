@@ -1,35 +1,83 @@
 from mymetods import *
 from task import *
 import numpy as np
+from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
 
-N = 100
-x1 = np.linspace(0, 1, N)
-x2 = np.linspace(0, 1, N)
-h = 1/N
-eps = 10**-4
-ys = np.ones((N, N))*0.99
 
-ytest = solution(x1, x2)
-ys = np.zeros((N, N))
 
-edge_computing(ys, u, (x1, x2))
-A = first_appr(ys, (N,N))
-tau, mu = simple_iter_koef(A)
-ns = simple_iter_count(eps, mu)
-A, F = make_koef_matr(ys, (N, N), tau, (h,h))
+maxiter = 100
+maxiter_jacobi = 20
 
-X = np.zeros((N*N,1))
-X0 = np.zeros((N*N,1))
-z = 0
-for i in range(0, N):
-    for j in range(0, N):
-        X[z,0] = ys[i,j]
-        X0[z,0]= ytest[i,j]
-        z = z+1
-while all(abs(X0-X)) > eps:
-    X = jacobi(A,F, ns, X, eps)
-    for z in range(0, N*N):
-        ys[z // N, z % N] = X[z]
-    tau, mu = simple_iter_koef(A)
-    ns = simple_iter_count(eps, mu)
-    A, F = make_koef_matr(ys, (N,N), tau, (h,h))
+ys = np.zeros((N1, N2))
+Cs = [[list() for _ in range(N1)] for _ in range(N2)]
+F = np.zeros((N1, N2))
+
+for i, x in enumerate(x1):
+    ys[i, 0] = u(x,0)
+    ys[i, -1] = u(x,1)
+for i, x in enumerate(x2):
+    ys[0, i] = u(0, x)
+    ys[-1, i] = u(1, x)
+
+for iter_count in range(maxiter):
+    #iter coef
+    for i in range(1,N1-1):
+        for j in range(1,N2-1):
+            Csi = np.zeros(5)
+            Csi[0] = (h2/h1*(ki(ys[i+1, j], ys[i, j]) + ki(ys[i-1, j], ys[i, j])) + \
+                      + h1/h2*(ki(ys[i, j+1], ys[i, j]) + \
+                      + ki(ys[i, j-1], ys[i, j])) +\
+                      + h1*h2*q(ys[i,j]))
+            Csi[1] = h2/h1*ki(ys[i+1, j], ys[i, j])
+            Csi[2] = h2/h1*ki(ys[i-1, j], ys[i, j])
+            Csi[3] = h1/h2*ki(ys[i, j+1], ys[i, j])
+            Csi[4] = h1/h2*ki(ys[i, j-1], ys[i, j])
+
+            F[i,j] = h1*h2*f(ys[i, j])
+            Cs[i][j] = Csi
+
+    #testing
+    rka = 0.0
+    for i in range(1, N1-1):
+        for j in range(1, N2-1):
+            rka = max(rka, abs(F[i,j] + Cs[i][j][1]*ys[i+1, j] + \
+                      + Cs[i][j][2]*ys[i-1, j] + Cs[i][j][3]*ys[i, j+1] + \
+                      + Cs[i][j][4]*ys[i, j-1] - Cs[i][j][0]*ys[i, j]))
+
+    if rka < eps: break
+
+    #jacobi
+
+    for iter_count_j in range(maxiter_jacobi):
+        for i in range(1, N1-1):
+            for j in range(1, N2-1):
+                ys[i, j] = (F[i,j] + Cs[i][j][1]*ys[i+1, j] + Cs[i][j][2]*ys[i-1, j] + Cs[i][j][3]*ys[i, j+1] + Cs[i][j][4]*ys[i, j-1])/Cs[i][j][0]
+
+#Задаем точное решение
+ysol = np.zeros((N1, N2))
+yerr = ys.copy()
+for i in range(N1):
+    for j in range(N2):
+        ysol[i,j] = u(x1[i],x2[j])
+#вычисляем ошибку на сетке
+rka = 0.0
+for i in range(N1):
+    for j in range(N2):
+        yerr[i, j] = abs(ysol[i, j]-ys[i, j])
+
+# выводим количество итераций и максимальную ошибку
+print(iter_count)
+print(max([max(er) for er in yerr]))
+
+#заготовка построения графиков
+def my3d_plot(zdata, x1, x2):
+    X, Y = np.meshgrid(x1, x2)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, zdata, color='0.75', rstride=1, cstride=1, cmap="magma")
+    ax.view_init(elev=10., azim=0)
+
+my3d_plot(ys, x1, x2)
+my3d_plot(ysol, x1, x2)
