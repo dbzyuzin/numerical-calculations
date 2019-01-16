@@ -6,6 +6,7 @@ x2 = np.linspace(0, 1, N2)
 h1 = 1/N1
 h2 = 1/N2
 eps = 1e-5
+eps_j = 1e-5
 
 
 def k(u):
