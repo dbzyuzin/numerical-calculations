@@ -1,6 +1,7 @@
-#include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 #include "mymetods.h"
+#include "task.h"
 
 double* linspace(int xa, int xb, int N)
 {
@@ -12,26 +13,26 @@ double* linspace(int xa, int xb, int N)
 	return x;
 }
 
+double dmax(const double x1, const double x2)
+{
+	if (x1 > x2)
+		return x1;
+	return x2;
+}
+
 double test_solution(double** ys, double*** Cs, double** F, const size_t N1, const size_t N2)
 {
     double rka = 0.0;
 
     for (int i = 1; i < N1-1; i++){
         for (int j = 1; i < N2-1; i++){
-            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
+            rka = dmax(rka, fabs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
                       + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
                       + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
 		}
 	}
 
     return rka;
-}
-
-double dmax(const double x1, const double x2)
-{
-	if (x1 > x2)
-		return x1;
-	return x2;
 }
 
 void print_res(const int N1, const int N2,
@@ -80,11 +81,11 @@ void edge_computing(const double* restrict x1, const size_t N1,
     }
 }
 
-double final_error(const double* ys, const double* ysol, const size_t N1, const size_t N2)
+double final_error(const double** ys, const double** ysol, const size_t N1, const size_t N2)
 {
     double err = 0;
     for (int i=0; i<N1; i++)
         for (int j=0; j<N2; j++)
-            err = dmax(abs(ysol[i, j]-ys[i, j]), err);
+            err = dmax(fabs(ysol[i][j]-ys[i][j]), err);
     return err;
 }
