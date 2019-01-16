@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
         ys[i] = calloc(N2, sizeof(double));
         ysol[i] = calloc(N2, sizeof(double));
         F[i] = calloc(N2, sizeof(double));
-        ys[i] = calloc(N2, sizeof(double*));
+        Cs[i] = calloc(N2, sizeof(double*));
         for (int j = 0; j < N2; j++)
             Cs[i][j] = calloc(5, sizeof(double));
     }
