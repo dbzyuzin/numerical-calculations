@@ -2,7 +2,8 @@
 #include <math.h>
 #include "mymetods.h"
 
-double* linspace(int xa, int xb, int N) {
+double* linspace(int xa, int xb, int N) 
+{
 	double *x = calloc(N, sizeof(double));
     double h = (xb - xa)/(double)(N-1);
     for (int i=0; i<N; i++){
@@ -11,21 +12,23 @@ double* linspace(int xa, int xb, int N) {
 	return x;
 }
 
-double test_solution(double **ys, double ***Cs, double **F,int N1,int N2) {
-    double rka = 0.0
+double test_solution(double** ys, double*** Cs, double** F, const size_t N1, const size_t N2) 
+{
+    double rka = 0.0;
 
     for (int i = 1; i < N1-1; i++){
         for (int j = 1; i < N2-1; i++){
-            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] + \
-                      + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] + \
-                      + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]))
+            rka = dmax(rka, abs(F[i][j] + Cs[i][j][1]*ys[i+1][j] + 
+                      + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] + 
+                      + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
 		}
 	}
 
     return rka;
 }
 
-double dmax(const double x1, const double x2) {
+double dmax(const double x1, const double x2) 
+{
 	if (x1 > x2)
 		return x1;
 	return x2;
@@ -50,7 +53,7 @@ void solution(const double* restrict x1, const size_t N1,
 }
 
 void edge_computing(const double* restrict x1, const size_t N1,
-            const double* restrict x2, const size_t N2, double**restrict ys)
+            const double* restrict x2, const size_t N2, double** restrict ys)
 {
     for(int i=0; i < N1; i++) {
         ys[i][0] = u(x1[i],0);
