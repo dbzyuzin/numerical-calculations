@@ -11,17 +11,24 @@ double* linspace(int xa, int xb, int N) {
 	return x;
 }
 
-void print_res(int N1,int N2,double h1,doube h2,double eps,int iter_count,double rka) {
-    printf("Параметры :\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
-    // printf("\n%7d %7d %7.3f %7.3f %8e\n","N1", "N2", "h1", "h2", "eps");
-    // s += "{: ^7d}{: ^7d}{: ^7.3f}{: ^7.3f}{: ^8}\n\n".format(N1, N2, h1, h2, eps)
-    // s += "Результаты:\n {: ^12}{: ^24}\n".format("Iter count", "Max Fail")
-    // s += " {: ^12}{: ^24.15f}\n{}\n".format(iter_count, np.max(yerr), "="*36)
+
+
+void print_res(int N1, int N2, double h1, double h2, double eps, int iter_count, double rka) {
+    printf("Параметры :\n\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
+	printf("%7d %7d %7.3f %7.3f %8.0e\n\n",N1, N2, h1, h2, eps);
+	printf("Результаты:\n\n %10s %24s \n", "Iter count", "Max Fail");
+	printf(" %10d %24.10f\n", iter_count, rka);
 }
 
+void solution(const double* restrict x1, const size_t N1,
+            const double* restrict x2, const size_t N2, double* ysol)
+{
+    for (int i=0; i<N1; i++)
+        for (int j=0; j<N2; j++)
+            ysol[i*N1+j] = u(x1[i],x2[j]);
+}
 
-void edge_computing(double *ys, double (*u)(const double, const double),
-            const double* restrict x1, const size_t N1,
+void edge_computing(const double* restrict x1, const size_t N1,
             const double* restrict x2, const size_t N2)
 {
     for(int i=0; i < N1; i++) {

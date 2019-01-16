@@ -25,12 +25,3 @@ double u(const double x1, const double x2) {
 inline double f(const double u) {
     return M_PI2*u*u*u;
 }
-
-void solution(double (*u)(const double, const double), 
-            const double* restrict x1, const size_t N1, 
-            const double* restrict x2, const size_t N2, double* ysol) 
-{
-    for (int i=0; i<N1; i++)
-        for (int j=0; j<N2; j++)
-            ysol[i*N1+j] = u(x1[i],x2[j]);
-}
