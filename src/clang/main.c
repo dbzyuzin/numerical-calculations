@@ -8,11 +8,11 @@ int main(int argc, char const *argv[])
     int ret;
     
     const size_t N1 = 20, N2 = 20;
-    const double *const restrict x1 = calloc(N1, sizeof(double));
-    const double *const restrict x2 = calloc(N2, sizeof(double));
+    const double *restrict x1 = calloc(N1, sizeof(double));
+    const double *restrict x2 = calloc(N2, sizeof(double));
 
-    const double h1 = 1/N1;
-    const double h2 = 1/N2;
+    const double h1 = 1.0/N1;
+    const double h2 = 1.0/N2;
     const double eps = 1e-5;
 
     int np, mp;
