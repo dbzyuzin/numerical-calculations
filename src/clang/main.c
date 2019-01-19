@@ -5,7 +5,7 @@
 
 int main(int argc, char const *argv[])
 {
-    const size_t N1 = 20, N2 = 20;
+    const size_t N1 = 1000, N2 = 1000;
     const double *restrict x1 = linspace(0, 1, N1);
     const double *restrict x2 = linspace(0, 1, N2);
 
@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
 
 
     const size_t maxiter = 100;
-    const size_t maxiter_jacobi = 333;
+    const size_t maxiter_jacobi =1000;
 
     double** ys = calloc(N1, sizeof(double*));
     double** ysol = calloc(N1, sizeof(double*));
@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
         ys[i] = calloc(N2, sizeof(double));
         ysol[i] = calloc(N2, sizeof(double));
         F[i] = calloc(N2, sizeof(double));
-        ys[i] = calloc(N2, sizeof(double*));
+        Cs[i] = calloc(N2, sizeof(double*));
         for (int j = 0; j < N2; j++)
             Cs[i][j] = calloc(5, sizeof(double));
     }
@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
     for (iter_count = 0; iter_count < maxiter;  iter_count++) {
 
         for (int i = 1; i <  N1-1; i++) {
-            for (int j = 1; i <  N2-1; i++){
+            for (int j = 1; j <  N2-1; j++){
                 Csi = Cs[i][j];
                 Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
                           + h1/h2*(ki(ys[i][j+1], ys[i][j]) +
@@ -59,13 +59,13 @@ int main(int argc, char const *argv[])
 
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
             for (int i = 1; i <  N1-1; i++) {
-                for (int j = 1; i <  N2-1; i++){
+                for (int j = 1; j <  N2-1; j++){
                     ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
 
-            if (test_solution(ys, Cs, F, N1, N2) < eps_j) break;
                 }
             }
+            if (test_solution(ys, Cs, F, N1, N2) < eps_j) break;
         }
     }
 
