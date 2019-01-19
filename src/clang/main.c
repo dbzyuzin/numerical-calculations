@@ -1,98 +1,120 @@
-#include <stdbool.h>
+/*Jacobi-2d program */
+#include <math.h>
 #include <stdlib.h>
-#include "mymetods.h"
-#include "task.h"
+#include <stdio.h>
+#include "mpi.h"
+#define m_printf if (mp==0)printf
+#define L 1000
+#define LC 2
+#define ITMAX 100
+int i,j,it,k;
+// double (* A)[L/LC+2];
+// double (* B)[L/LC];
 
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
-    const size_t N1 = 1000, N2 = 1000;
-    const double *restrict x1 = linspace(0, 1, N1);
-    const double *restrict x2 = linspace(0, 1, N2);
+    double (* A)[L/LC+2];
+    double (* B)[L/LC];
 
-    const double h1 = 1.0/N1;
-    const double h2 = 1.0/N2;
-    const double eps = 1e-5;
-    const double eps_j = 1e-5;
+    MPI_Request req[8];
+    int mp, np;
+    int start_row,last_row,nrow,scol,lcol,ncol;
+    MPI_Status status[8];
+    double t1;
+    int isper[] = {0,0}; //периодичность решетки
+    int dim[2]; //размерность
+    int coords[2];
+    MPI_Comm newcomm;
+    MPI_Datatype vectype;
+    int proc_left,proc_right, proc_down,proc_up;
 
+    MPI_Init (&argc, &argv); /* initialize MPI system */
+    MPI_Comm_size (MPI_COMM_WORLD, &np); /* size of MPI system */
+    MPI_Comm_rank (MPI_COMM_WORLD, &mp); /* my place in MPI system */
 
-    const size_t maxiter = 100;
-    const size_t maxiter_jacobi =1000;
-
-    double** ys = calloc(N1, sizeof(double*));
-    double** ysol = calloc(N1, sizeof(double*));
-    double* Csi;
-    double*** Cs = calloc(N1, sizeof(double**));
-    double** F = calloc(N1, sizeof(double*));
-    for (int i=0; i<N1; i++)
+    dim[0]=np/LC;
+    dim[1]=LC;
+    if ((L%dim[0])||(L%dim[1]))
     {
-        ys[i] = calloc(N2, sizeof(double));
-        ysol[i] = calloc(N2, sizeof(double));
-        F[i] = calloc(N2, sizeof(double));
-        Cs[i] = calloc(N2, sizeof(double*));
-        for (int j = 0; j < N2; j++)
-            Cs[i][j] = calloc(5, sizeof(double));
+        m_printf("ERROR: array[%d*%d] is not distributed on %d*%d processors\n",L,L,dim[0],dim[1]);
+        MPI_Finalize();
+        exit(1);
     }
-    edge_computing(x1, N1, x2, N2, ys);
+    MPI_Cart_create(MPI_COMM_WORLD,2,dim,isper,1,&newcomm);
+    MPI_Cart_shift(newcomm,0,1,&proc_up,&proc_down);
+    MPI_Cart_shift(newcomm,1,1,&proc_left,&proc_right);
+    MPI_Comm_rank (newcomm, &mp); /* my place in MPI system */
+    MPI_Cart_coords(newcomm,mp,2,coords);
 
-    int iter_count;
-    for (iter_count = 0; iter_count < maxiter;  iter_count++) {
+    /* rows of matrix I have to process */
+    start_row = (coords[0] * L) / dim[0];
+    last_row = (((coords[0] + 1) * L) / dim[0])-1;
+    nrow = last_row - start_row + 1;
+    /* columns of matrix I have to process */
+    scol = (coords[1] * L) / dim[1];
+    lcol = (((coords[1] + 1) * L) / dim[1])-1;
+    ncol = lcol - scol + 1;
+    MPI_Type_vector(nrow,1,ncol+2,MPI_DOUBLE,&vectype);
+    MPI_Type_commit(&vectype);
+    m_printf("JAC2 STARTED on %d*%d processors with %d*%d array, it=%d\n",dim[0],dim[1],L,L,ITMAX);
+    /* dynamically allocate data structures */
+    A = malloc ((nrow+2) * (ncol+2) * sizeof(double));
+    B = malloc (nrow * ncol * sizeof(double));
 
-        for (int i = 1; i <  N1-1; i++) {
-            for (int j = 1; j <  N2-1; j++){
-                Csi = Cs[i][j];
-                Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
-                          + h1/h2*(ki(ys[i][j+1], ys[i][j]) +
-                          + ki(ys[i][j-1], ys[i][j])) +
-                          + h1*h2*q(ys[i][j]));
-                Csi[1] = h2/h1*ki(ys[i+1][j], ys[i][j]);
-                Csi[2] = h2/h1*ki(ys[i-1][j], ys[i][j]);
-                Csi[3] = h1/h2*ki(ys[i][j+1], ys[i][j]);
-                Csi[4] = h1/h2*ki(ys[i][j-1], ys[i][j]);
-
-                F[i][j] = h1*h2*f(ys[i][j]);
-                Cs[i][j] = Csi;
-            }
-        }
-
-        if (test_solution(ys, Cs, F, N1, N2) < eps) break;
-
-
-        for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
-            for (int i = 1; i <  N1-1; i++) {
-                for (int j = 1; j <  N2-1; j++){
-                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
-                        + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
-
-                }
-            }
-            if (test_solution(ys, Cs, F, N1, N2) < eps_j) break;
+    for(i=0; i<=nrow-1; i++)
+    {
+        for(j=0; j<=ncol-1; j++)
+        {
+            A[i+1][j+1]=0.;
+            B[i][j]=1.+start_row+i+scol+j;
         }
     }
-
-    //Задаем точное решение
-    solution(x1, N1, x2, N2, ysol);
-
-    //вычисляем ошибку на сетке
-    double yerr = final_error(ys, ysol, N1, N2);
-
-    // выводим количество итераций и максимальную ошибку
-    print_res(N1, N2, h1, h2, eps, iter_count, yerr);
-
-
-    for(int i=0; i<N1; i++)
+    /****** iteration loop *************************/
+    MPI_Barrier(newcomm);
+    t1=MPI_Wtime();
+    for(it=1; it<=ITMAX; it++)
     {
-        for (int j = 0; j < N2; j++)
-            free(Cs[i][j]);
-        free(Cs[i]);
-        free(F[i]);
-        free(ys[i]);
-        free(ysol[i]);
+        for(i=0; i<=nrow-1; i++)
+        {
+            if (((i==0)&&(proc_up==MPI_PROC_NULL))||((i==nrow-1)&&(proc_down==MPI_PROC_NULL))) continue;
+            for(j=0; j<=ncol-1; j++)
+            {
+                if (((j==0)&&(proc_left==MPI_PROC_NULL))||((j==ncol-1)&&(proc_right==MPI_PROC_NULL)))
+                continue;
+                A[i+1][j+1] = B[i][j];
+            }
+        }
+        MPI_Irecv(&A[0][1],ncol,MPI_DOUBLE,
+        proc_up, 1215, MPI_COMM_WORLD, &req[0]);
+        MPI_Isend(&A[nrow][1],ncol,MPI_DOUBLE,
+        proc_down, 1215, MPI_COMM_WORLD,&req[1]);
+        MPI_Irecv(&A[nrow+1][1],ncol,MPI_DOUBLE,
+        proc_down, 1216, MPI_COMM_WORLD, &req[2]);
+        MPI_Isend(&A[1][1],ncol,MPI_DOUBLE,
+        proc_up, 1216, MPI_COMM_WORLD,&req[3]);
+        MPI_Irecv(&A[1][0],1,vectype,
+        proc_left, 1217, MPI_COMM_WORLD, &req[4]);
+        MPI_Isend(&A[1][ncol],1,vectype,
+        proc_right, 1217, MPI_COMM_WORLD,&req[5]);
+        MPI_Irecv(&A[1][ncol+1],1,vectype,
+        proc_right, 1218, MPI_COMM_WORLD, &req[6]);
+        MPI_Isend(&A[1][1],1,vectype,
+        proc_left, 1218, MPI_COMM_WORLD,&req[7]);
+        MPI_Waitall(8,req,status);
+
+        for(i=1; i<=nrow; i++)
+        {
+            if (((i==1)&&(proc_up==MPI_PROC_NULL))||
+            ((i==nrow)&&(proc_down==MPI_PROC_NULL))) continue;
+            for(j=1; j<=ncol; j++)
+            {
+                if (((j==1)&&(proc_left==MPI_PROC_NULL))||
+                ((j==ncol)&&(proc_right==MPI_PROC_NULL))) continue;
+                B[i-1][j-1] = (A[i-1][j]+A[i+1][j]+A[i][j-1]+A[i][j+1])/4.;
+            }
+        }
     }
-    free(Cs);
-    free(ys);
-    free(ysol);
-    free(F);
-    free(x1);
-    free(x2);
+    printf("%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
+    MPI_Finalize ();
     return 0;
 }
