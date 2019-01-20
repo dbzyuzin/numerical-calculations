@@ -4,13 +4,36 @@
 #include <stdio.h>
 #include "mymetods.h"
 #include "task.h"
+#include "mpi.h"
 
 #define MPI_PROC_NULL 1
+#define m0_printf if (mp==0)printf
 
-const size_t N1 = 20, N2 = 20;
+int MyNetInit(int* argc, char*** argv, int* np, int* mp) {
+    int i;
+
+    i = MPI_Init(argc,argv);
+    if (i != 0){
+        fprintf(stderr,"MPI initialization error");
+        MPI_Finalize();
+        exit(i);
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD,np);
+    MPI_Comm_rank(MPI_COMM_WORLD,mp);
+
+    // sleep(1);
+
+    return 0;
+}
 
 int main(int argc, char const *argv[])
 {
+    int mp, np;
+
+
+    const size_t N1 = 20, N2 = 20;
+
     double *x1 = linspace(0, 1, N1);
     double *x2 = linspace(0, 1, N2);
 
@@ -25,6 +48,8 @@ int main(int argc, char const *argv[])
     int start_row,last_row,num_row,start_col,last_col,num_col;
     int proc_left,proc_right, proc_down,proc_up;
     int limits1[2], limits2[2];
+
+    MyNetInit(&argc, &argv, &np, &mp);
 
     proc_left = proc_right = proc_down = proc_up = 1;
     /* rows of matrix I have to process */
@@ -156,5 +181,6 @@ int main(int argc, char const *argv[])
     free(F);
     free(x1);
     free(x2);
+    MPI_Finalize();
     return 0;
 }
