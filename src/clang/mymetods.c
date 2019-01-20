@@ -24,8 +24,8 @@ double test_solution(double** ys, double*** Cs, double** F, const size_t n1, con
 {
     double rka = 0.0;
 
-    for (int i = 2; i < n1; i++){
-        for (int j = 2; j < n2; j++){
+    for (int i = 1; i < n1+1; i++){
+        for (int j = 1; j < n2+1; j++){
             rka = dmax(rka, fabs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
                       + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
                       + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
@@ -68,6 +68,7 @@ void solution(double* x1, const size_t n1,
             ysol[i][j] = u(x1[i-1],x2[j-1]);
 }
 
+//not for parallel version
 void edge_computing(double* x1, const size_t n1,
              double* x2, const size_t n2, double** ys)
 {

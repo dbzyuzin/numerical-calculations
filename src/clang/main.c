@@ -5,6 +5,8 @@
 #include "mymetods.h"
 #include "task.h"
 
+#define MPI_PROC_NULL 1
+
 const size_t N1 = 20, N2 = 20;
 
 int main(int argc, char const *argv[])
@@ -21,6 +23,10 @@ int main(int argc, char const *argv[])
     const size_t maxiter_jacobi = 300;
 
     int start_row,last_row,num_row,start_col,last_col,num_col;
+    int proc_left,proc_right, proc_down,proc_up;
+    int limits1[2], limits2[2];
+
+    proc_left = proc_right = proc_down = proc_up = 1;
     /* rows of matrix I have to process */
     start_row = 0;
     last_row = N1-1;
@@ -47,20 +53,40 @@ int main(int argc, char const *argv[])
     double** F = calloc(num_row+2, sizeof(double*));
     for (int i=0; i<num_row+2; i++)
     {
-        // ys[i] = calloc(N2, sizeof(double));
         ysol[i] = calloc(num_col+2, sizeof(double));
         F[i] = calloc(num_col+2, sizeof(double));
         Cs[i] = calloc(num_col+2, sizeof(double*));
         for (int j = 0; j < num_col+2; j++)
             Cs[i][j] = calloc(5, sizeof(double));
     }
-    edge_computing(x1+start_row, num_row, x2+start_col, num_col, ys);
-    edge_computing(x1, num_row, x2, num_col, ys1);
+
+    for(int i = 1; i < num_row+1; i++)
+        for(int j=1; j < num_col+1; j++)
+        {
+            if ((i==1)&&(proc_up==MPI_PROC_NULL)) {
+                ys[i][j] = u(0, x2[start_col + j - 1]);
+                continue;
+            }
+            if ((i==num_row)&&(proc_down==MPI_PROC_NULL)) {
+                ys[i][j] = u(1, x2[start_col + j - 1]);
+                continue;
+            }
+            if ((j==1)&&(proc_left==MPI_PROC_NULL)) {
+                ys[i][j] = u(x1[start_row + i - 1], 0);
+                continue;
+            }
+            if ((j==num_col)&&(proc_right==MPI_PROC_NULL)) {
+                ys[i][j] = u(x1[start_row + i - 1], 1);
+                continue;
+            }
+        }
+    memcpy(ys1[0],ys[0], (num_row+2) * (num_col+2)*sizeof(double));
 
     int iter_count;
     for (iter_count = 0; iter_count < maxiter;  iter_count++) {
-
-        for (int i = 2; i <  num_row; i++) {
+        limits1[0] = (proc_up==MPI_PROC_NULL) ? 2 : 1; limits1[1] = (proc_down==MPI_PROC_NULL) ? num_row : num_row+1;
+        limits2[0] = (proc_left==MPI_PROC_NULL) ? 2 : 1; limits2[1] = (proc_right==MPI_PROC_NULL) ? num_col : num_col+1;
+        for (int i = limits1[0]; i <  limits1[1]; i++) {
             for (int j = 2; j <  num_col; j++){
                 Csi = Cs[i][j];
                 Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
@@ -81,8 +107,10 @@ int main(int argc, char const *argv[])
 
 
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
-            for (int i = 2; i <  num_row; i++) {
-                for (int j = 2; j <  num_col; j++){
+            limits1[0] = (proc_up==MPI_PROC_NULL) ? 2 : 1; limits1[1] = (proc_down==MPI_PROC_NULL) ? num_row : num_row+1;
+            limits2[0] = (proc_left==MPI_PROC_NULL) ? 2 : 1; limits2[1] = (proc_right==MPI_PROC_NULL) ? num_col : num_col+1;
+            for (int i = limits1[0]; i <  limits1[1]; i++) {
+                for (int j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
 
@@ -93,6 +121,14 @@ int main(int argc, char const *argv[])
         }
     }
 
+    for (int i = 0; i <  num_row+2; i++) {
+        printf("\n");
+        for (int j = 0; j <  num_col+2; j++){
+            printf("%6.3f ", ys[i][j]);
+
+        }
+    }
+    printf("\n");
 
     //Задаем точное решение
     solution(x1+start_row, num_row, x2+start_col, num_col, ysol);
