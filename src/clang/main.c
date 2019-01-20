@@ -127,11 +127,8 @@ int main(int argc, char **argv)
     const double *restrict x1 = linspace(0, 1, N1);
     const double *restrict x2 = linspace(0, 1, N2);
 
-    double** ys = calloc(num_row+2, sizeof(double*));
-    for (int i=0; i<num_row+2; i++)
-    {
-        ys[i] = calloc(num_col+2, sizeof(double));
-    }
+    double (* ys)[num_col+2];
+    ys = malloc ((num_row+2) * (num_col+2) * sizeof(double));
 
     MPI_Type_vector(num_row,1,num_col+2,MPI_DOUBLE,&vectype);
     MPI_Type_commit(&vectype);
@@ -164,17 +161,14 @@ int main(int argc, char **argv)
                 continue;
             }
             ys[i][j] = 0;
-            // A[i+1][j+1]=0.;
-            // B[i][j]=1.+start_row+i+start_col+j;
         }
     }
-    if (mp==0)
+    if (coords[0]==0 && coords[1]==0)
         for(i=0; i<=num_row+1; i++)
         {
-            printf("\n");
             for(j=0; j<=num_col+1; j++)
             {
-                printf("%5.3f ", ys[i][j]);
+                ys[i][j] = 1.;
             }
         }
 
@@ -183,7 +177,7 @@ int main(int argc, char **argv)
     /****** iteration loop *************************/
     MPI_Barrier(newcomm);
     t1=MPI_Wtime();
-    for(it=1; it<=maxiter; it++)
+    for(it=1; it<=1; it++)
     {
         for(i=0; i<=num_row-1; i++)
         {
@@ -195,23 +189,35 @@ int main(int argc, char **argv)
                 // A[i+1][j+1] = B[i][j];
             }
         }
-        MPI_Irecv(&A[0][1],num_col,MPI_DOUBLE,
+        MPI_Irecv(&ys[0][1],num_col,MPI_DOUBLE,
         proc_up, 1215, MPI_COMM_WORLD, &req[0]);
-        MPI_Isend(&A[num_row][1],num_col,MPI_DOUBLE,
+        MPI_Isend(&ys[num_row][1],num_col,MPI_DOUBLE,
         proc_down, 1215, MPI_COMM_WORLD,&req[1]);
-        MPI_Irecv(&A[num_row+1][1],num_col,MPI_DOUBLE,
+        MPI_Irecv(&ys[num_row+1][1],num_col,MPI_DOUBLE,
         proc_down, 1216, MPI_COMM_WORLD, &req[2]);
-        MPI_Isend(&A[1][1],num_col,MPI_DOUBLE,
+        MPI_Isend(&ys[1][1],num_col,MPI_DOUBLE,
         proc_up, 1216, MPI_COMM_WORLD,&req[3]);
-        MPI_Irecv(&A[1][0],1,vectype,
+        MPI_Irecv(&ys[1][0],1,vectype,
         proc_left, 1217, MPI_COMM_WORLD, &req[4]);
-        MPI_Isend(&A[1][num_col],1,vectype,
+        MPI_Isend(&ys[1][num_col],1,vectype,
         proc_right, 1217, MPI_COMM_WORLD,&req[5]);
-        MPI_Irecv(&A[1][num_col+1],1,vectype,
+        MPI_Irecv(&ys[1][num_col+1],1,vectype,
         proc_right, 1218, MPI_COMM_WORLD, &req[6]);
-        MPI_Isend(&A[1][1],1,vectype,
+        MPI_Isend(&ys[1][1],1,vectype,
         proc_left, 1218, MPI_COMM_WORLD,&req[7]);
         MPI_Waitall(8,req,status);
+
+        if (coords[0]==0 && coords[1]==1)
+            for(i=0; i<=num_row+1; i++)
+            {
+                printf("\n");
+                for(j=0; j<=num_col+1; j++)
+                {
+                    printf("%5.3f ", ys[i][j]);
+                }
+            }
+        printf("\n");
+
 
         for(i=1; i<=num_row; i++)
         {
