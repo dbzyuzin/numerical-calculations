@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "mymetods.h"
 #include "task.h"
 
@@ -45,6 +46,7 @@ int main(int argc, char const *argv[])
             Cs[i][j] = calloc(5, sizeof(double));
     }
     edge_computing(x1, N1, x2, N2, ys);
+    edge_computing(x1, N1, x2, N2, ys1);
 
     int iter_count;
     for (iter_count = 0; iter_count < maxiter;  iter_count++) {
@@ -72,14 +74,32 @@ int main(int argc, char const *argv[])
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
             for (int i = 1; i <  N1-1; i++) {
                 for (int j = 1; j <  N2-1; j++){
-                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
+                    ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
 
                 }
             }
+            memcpy(ys[0],ys1[0], N1*N2*sizeof(double));
             if (test_solution(ys, Cs, F, N1, N2) < eps_j) break;
         }
     }
+
+    for (int i = 0; i <  N1; i++) {
+        printf("\n");
+        for (int j = 0; j <  N2; j++){
+            printf("%6.3f ", ys[i][j]);
+
+        }
+    }
+    printf("\n");
+    for (int i = 0; i <  N1; i++) {
+        printf("\n");
+        for (int j = 0; j <  N2; j++){
+            printf("%6.3f ", ys1[i][j]);
+
+        }
+    }
+    printf("\n");
 
     //Задаем точное решение
     solution(x1, N1, x2, N2, ysol);
@@ -97,10 +117,10 @@ int main(int argc, char const *argv[])
             free(Cs[i][j]);
         free(Cs[i]);
         free(F[i]);
-        free(ys[i]);
         free(ysol[i]);
     }
     free(Cs);
+    free(ys[0]);
     free(ys);
     free(ysol);
     free(F);
