@@ -25,6 +25,7 @@ double test_solution(double** ys, double*** Cs, double** F, const size_t N1, con
     double rka = 0.0;
 
     for (int i = 1; i < N1-1; i++){
+        #pragma omp parallel for
         for (int j = 1; j < N2-1; j++){
             rka = dmax(rka, fabs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
                       + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
