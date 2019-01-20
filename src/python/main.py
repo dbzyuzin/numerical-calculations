@@ -46,6 +46,11 @@ ysol = solution(u, x1, x2)
 #вычисляем ошибку на сетке
 yerr = final_error(ys, ysol)
 
+for i in ysol:
+    print()
+    for j in i:
+        print("{:6.3}".format(j), " ", end="")
+
 # выводим количество итераций и максимальную ошибку
 print(make_res(N1, N2, h1, h2, eps, iter_count, yerr))
 with open("test.txt", "a") as f:
