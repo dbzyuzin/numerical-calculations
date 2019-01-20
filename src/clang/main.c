@@ -231,13 +231,8 @@ int main(int argc, char **argv)
                 for(j=1; j<=num_col; j++)
                 {
                     if (((j==1)&&(proc_left==MPI_PROC_NULL))||((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
-<<<<<<< HEAD
-                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
-                        + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
-=======
                     ys[i][j] = (F[i][j] + Cs[i][j][1]*ys1[i+1][j] + Cs[i][j][2]*ys1[i-1][j] +
                         + Cs[i][j][3]*ys1[i][j+1] + Cs[i][j][4]*ys1[i][j-1])/Cs[i][j][0];
->>>>>>> dada4f53a7afe183b9c78011042ad66176b8075f
                 }
             }
         }
@@ -272,7 +267,6 @@ int main(int argc, char **argv)
         // printf("\n");
 
     }
-<<<<<<< HEAD
 
     //Задаем точное решение
     solution(x1+start_row, num_row, x2+start_col, num_col, ysol);
@@ -289,10 +283,7 @@ int main(int argc, char **argv)
             err = dmax(fabs(ysol[i][j]-ys[i][j]), err);
 
     printf("%d: Time of task=%lf, err %f, %d\n",mp,MPI_Wtime()-t1, err, it);
-=======
-    printf("%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
     #pragma omp parallel for
->>>>>>> dada4f53a7afe183b9c78011042ad66176b8075f
     for(int i=0; i<num_row+2; i++)
     {
         for (int j = 0; j < num_col+2; j++)
