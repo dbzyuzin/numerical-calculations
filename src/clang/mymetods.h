@@ -6,19 +6,19 @@ double* linspace(int xa, int xb, int N);
 
 double dmax(const double x1, const double x2);
 
-double test_solution(double** ys, double*** Cs, double** F, const size_t N1, const size_t N2);
-void print_res(const int N1, const int N2,
+double test_solution(double** ys, double*** Cs, double** F, const size_t n1, const size_t n2);
+void print_res(const int n1, const int n2,
                 const double h1, const double h2,
                 const double eps, const int iter_count, const double rka);
-void fprint_res(const int N1, const int N2,
+void fprint_res(const int n1, const int n2,
                 const double h1, const double h2,
                 const double eps, const int iter_count, const double rka);
 
-void solution(double* x1, const size_t N1,
-            double* x2, const size_t N2, double** ysol);
+void solution(double* x1, const size_t n1,
+            double* x2, const size_t n2, double** ysol);
 
-void edge_computing(double* x1, const size_t N1,
-             double* x2, const size_t N2, double** ys);
+void edge_computing(double* x1, const size_t n1,
+             double* x2, const size_t n2, double** ys);
 
-double final_error(double** ys, double** ysol, const size_t N1, const size_t N2);
+double final_error(double** ys, double** ysol, const size_t n1, const size_t n2);
 #endif
