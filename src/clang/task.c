@@ -1,6 +1,6 @@
 #include "task.h"
 
-inline double k(const double u)
+double k(const double u)
 {
     return 1.0 + u*u;
 }
@@ -12,7 +12,7 @@ double ki(const double u1, const double u2)
     return 2*(k1*k2)/(k1+k2);
 }
 
-inline double q(const double u)
+double q(const double u)
 {
     return M_05_PI2*(1-u*u);
 }
@@ -22,7 +22,7 @@ double u(const double x1, const double x2)
     return cos(M_05_PI*(x1+x2));
 }
 
-inline double f(const double u)
+double f(const double u)
 {
     return M_PI2*u*u*u;
 }
