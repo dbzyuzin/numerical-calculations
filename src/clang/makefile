@@ -1,12 +1,13 @@
 
-all: gcc run
+all: compile run
 
-gcc: main.c mymetods.c task.c
-	gcc -o exefile main.c mymetods.c task.c -fopenmp -std=c11 -lm
+compile: main.c mymetods.c task.c
+	sshpass -e ssh miet004@imm10.keldysh.ru \
+	'mpicc -o ~/Desktop/finalprog/exefile ~/Desktop/finalprog/main.c ~/Desktop/finalprog/mymetods.c ~/Desktop/finalprog/task.c -fopenmp -std=c11 -lm'
 	chmod +x exefile
 
 run:
-	./exefile
+	sshpass -e ssh miet004@imm10.keldysh.ru 'mpirun -np 1 ~/Desktop/finalprog/exefile'
 
 upload:
 	sshpass -e scp * miet004@imm10.keldysh.ru:~/Desktop/finalprog
