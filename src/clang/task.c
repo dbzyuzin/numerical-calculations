@@ -1,4 +1,5 @@
 #include "task.h"
+#include <math.h>
 
 double k(const double u)
 {

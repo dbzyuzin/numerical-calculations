@@ -109,6 +109,7 @@ int main(int argc, char const *argv[])
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
             limits1[0] = (proc_up==MPI_PROC_NULL) ? 2 : 1; limits1[1] = (proc_down==MPI_PROC_NULL) ? num_row : num_row+1;
             limits2[0] = (proc_left==MPI_PROC_NULL) ? 2 : 1; limits2[1] = (proc_right==MPI_PROC_NULL) ? num_col : num_col+1;
+            #pragma omp parallel for collapse(2)
             for (int i = limits1[0]; i <  limits1[1]; i++) {
                 for (int j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
