@@ -6,7 +6,7 @@
 #define m_printf if (mp==0)printf
 #define M_PI 3.14159265358979323846
 #define M_05_PI (0.5*M_PI)
-int i,j,it,k;
+int i,j,it;
 
 void grid(int nx, int ny, int np, int* o_np1, int* o_np2) {
     double s;
@@ -59,22 +59,37 @@ double u(const double x1, const double x2)
 {
     return cos(M_05_PI*(x1+x2));
 }
-// void edge_computing(const double* restrict x1, const size_t N1,
-//             const double* restrict x2, const size_t N2, double** restrict ys)
+
+double k(const double u)
+{
+    return 1.0 + u*u;
+}
+
+double ki(const double u1, const double u2)
+{
+    const double k1 = k(u1);
+    const double k2 = k(u2);
+    return 2*(k1*k2)/(k1+k2);
+}
+
+double q(const double u)
+{
+    return M_05_PI*M_05_PI*(1-u*u);
+}
+
+double f(const double u)
+{
+    return M_PI*M_PI*u*u*u;
+}
+
+// void solution(const double* restrict x1, const size_t N1,
+//             const double* restrict x2, const size_t N2, double** ysol)
 // {
-//     for(int i=0; i < N1; i++) {
-//         ys[i][0] = u(x1[i],0);
-//         ys[i][N2-1] = u(x1[i],1);
-//     }
-//     for(int i=0; i < N2; i++) {
-//         ys[0][i] = u(0, x2[i]);
-//         ys[N1-1][i] = u(1, x2[i]);
-//     }
-// 	for (int i = 1; i <  N1-1; i++)
-//         for (int j = 1; j <  N2-1; j++)
-//             ys[i][j] = 0;
-//
+//     for (int i=0; i<N1; i++)
+//         for (int j=0; j<N2; j++)
+//             ysol[i][j] = u(x1[i],x2[j]);
 // }
+
 
 int main(int argc, char **argv)
 {
@@ -122,16 +137,30 @@ int main(int argc, char **argv)
     last_col = (((coords[1] + 1) * N2) / dim[1])-1;
     num_col = last_col - start_col + 1;
 
+    MPI_Type_vector(num_row,1,num_col+2,MPI_DOUBLE,&vectype);
+    MPI_Type_commit(&vectype);
+
     double (* A)[num_col+2];
     double (* B)[num_col];
-    const double *restrict x1 = linspace(0, 1, N1);
-    const double *restrict x2 = linspace(0, 1, N2);
+    double *x1 = linspace(0, 1, N1);
+    double *x2 = linspace(0, 1, N2);
 
     double (* ys)[num_col+2];
     ys = malloc ((num_row+2) * (num_col+2) * sizeof(double));
 
-    MPI_Type_vector(num_row,1,num_col+2,MPI_DOUBLE,&vectype);
-    MPI_Type_commit(&vectype);
+    double** ysol = calloc(num_row+2, sizeof(double*));
+    double* Csi;
+    double*** Cs = calloc(num_row+2, sizeof(double**));
+    double** F = calloc(num_row+2, sizeof(double*));
+    for (int i=0; i<num_row+2; i++)
+    {
+        ysol[i] = calloc(num_col+2, sizeof(double));
+        F[i] = calloc(num_col+2, sizeof(double));
+        Cs[i] = calloc(num_col+2, sizeof(double*));
+        for (int j = 0; j < num_col+2; j++)
+            Cs[i][j] = calloc(5, sizeof(double));
+    }
+
     m_printf("JAC2 STARTED on %d*%d processors with %d*%d array, it=%d\n",dim[0],dim[1],N1,N2,maxiter);
 
 
@@ -140,8 +169,6 @@ int main(int argc, char **argv)
     B = malloc (num_row * num_col * sizeof(double));
 
     for(i=1; i<=num_row; i++)
-    {
-
         for(j=1; j<=num_col; j++)
         {
             if ((i==1)&&(proc_up==MPI_PROC_NULL)) {
@@ -160,33 +187,45 @@ int main(int argc, char **argv)
                 ys[i][j] = u(x1[start_row + i - 1], 1);
                 continue;
             }
-            ys[i][j] = 0;
-        }
-    }
-    if (coords[0]==0 && coords[1]==0)
-        for(i=0; i<=num_row+1; i++)
-        {
-            for(j=0; j<=num_col+1; j++)
-            {
-                ys[i][j] = 1.;
-            }
         }
 
-    // edge_computing(x1, num_row, x2, num_col, ys);
+
 
     /****** iteration loop *************************/
     MPI_Barrier(newcomm);
     t1=MPI_Wtime();
     for(it=1; it<=1; it++)
     {
-        for(i=0; i<=num_row-1; i++)
+        for(i=1; i<=num_row; i++)
         {
-            if (((i==0)&&(proc_up==MPI_PROC_NULL))||((i==num_row-1)&&(proc_down==MPI_PROC_NULL))) continue;
-            for(j=0; j<=num_col-1; j++)
+            if (((i==1)&&(proc_up==MPI_PROC_NULL))||((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
+            for(j=1; j<=num_col; j++)
             {
-                if (((j==0)&&(proc_left==MPI_PROC_NULL))||((j==num_col-1)&&(proc_right==MPI_PROC_NULL)))
-                    continue;
-                // A[i+1][j+1] = B[i][j];
+                if (((j==1)&&(proc_left==MPI_PROC_NULL))||((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
+                Csi = Cs[i][j];
+                Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
+                          + h1/h2*(ki(ys[i][j+1], ys[i][j]) +
+                          + ki(ys[i][j-1], ys[i][j])) +
+                          + h1*h2*q(ys[i][j]));
+                Csi[1] = h2/h1*ki(ys[i+1][j], ys[i][j]);
+                Csi[2] = h2/h1*ki(ys[i-1][j], ys[i][j]);
+                Csi[3] = h1/h2*ki(ys[i][j+1], ys[i][j]);
+                Csi[4] = h1/h2*ki(ys[i][j-1], ys[i][j]);
+
+                F[i][j] = h1*h2*f(ys[i][j]);
+                Cs[i][j] = Csi;
+            }
+        }
+
+        for (int it1 = 0;  it1 < maxiter_jacobi; it1++) {
+            for(i=1; i<=num_row; i++)
+            {
+                if (((i==1)&&(proc_up==MPI_PROC_NULL))||((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
+                for(j=1; j<=num_col; j++)
+                {
+                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
+                        + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
+                }
             }
         }
         MPI_Irecv(&ys[0][1],num_col,MPI_DOUBLE,
@@ -207,31 +246,33 @@ int main(int argc, char **argv)
         proc_left, 1218, MPI_COMM_WORLD,&req[7]);
         MPI_Waitall(8,req,status);
 
-        if (coords[0]==0 && coords[1]==1)
-            for(i=0; i<=num_row+1; i++)
-            {
-                printf("\n");
-                for(j=0; j<=num_col+1; j++)
-                {
-                    printf("%5.3f ", ys[i][j]);
-                }
-            }
-        printf("\n");
+        // if (coords[0]==0 && coords[1]==1)
+        //     for(i=0; i<=num_row+1; i++)
+        //     {
+        //         printf("\n");
+        //         for(j=0; j<=num_col+1; j++)
+        //         {
+        //             printf("%5.3f ", ys[i][j]);
+        //         }
+        //     }
+        // printf("\n");
 
-
-        for(i=1; i<=num_row; i++)
-        {
-            if (((i==1)&&(proc_up==MPI_PROC_NULL))||
-            ((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
-            for(j=1; j<=num_col; j++)
-            {
-                if (((j==1)&&(proc_left==MPI_PROC_NULL))||
-                ((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
-                // B[i-1][j-1] = (A[i-1][j]+A[i+1][j]+A[i][j-1]+A[i][j+1])/4.;
-            }
-        }
     }
     printf("%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
-    MPI_Finalize ();
+    for(int i=0; i<num_row+2; i++)
+    {
+        for (int j = 0; j < num_col+2; j++)
+            free(Cs[i][j]);
+        free(Cs[i]);
+        free(F[i]);
+        free(ysol[i]);
+    }
+    free(Cs);
+    free(ys);
+    free(ysol);
+    free(F);
+    free(x1);
+    free(x2);
+    MPI_Finalize();
     return 0;
 }
