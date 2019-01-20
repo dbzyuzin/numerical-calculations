@@ -146,7 +146,9 @@ int main(int argc, char **argv)
     double *x2 = linspace(0, 1, N2);
 
     double (* ys)[num_col+2];
-    ys = malloc ((num_row+2) * (num_col+2) * sizeof(double));
+    ys = calloc ((num_row+2) * (num_col+2), sizeof(double));
+    double (* ys1)[num_col+2];
+    ys1 = calloc ((num_row+2) * (num_col+2), sizeof(double));
 
     double** ysol = calloc(num_row+2, sizeof(double*));
     double* Csi;
@@ -162,11 +164,6 @@ int main(int argc, char **argv)
     }
 
     m_printf("JAC2 STARTED on %d*%d processors with %d*%d array, it=%d\n",dim[0],dim[1],N1,N2,maxiter);
-
-
-    /* dynamically allocate data structures */
-    A = malloc ((num_row+2) * (num_col+2) * sizeof(double));
-    B = malloc (num_row * num_col * sizeof(double));
 
     for(i=1; i<=num_row; i++)
         for(j=1; j<=num_col; j++)
@@ -199,6 +196,7 @@ int main(int argc, char **argv)
         for(i=1; i<=num_row; i++)
         {
             if (((i==1)&&(proc_up==MPI_PROC_NULL))||((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
+            #pragma omp parallel for
             for(j=1; j<=num_col; j++)
             {
                 if (((j==1)&&(proc_left==MPI_PROC_NULL))||((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
@@ -217,14 +215,18 @@ int main(int argc, char **argv)
             }
         }
 
+
         for (int it1 = 0;  it1 < maxiter_jacobi; it1++) {
+            memcpy(ys1, ys, (num_row+2) * (num_col+2));
             for(i=1; i<=num_row; i++)
             {
                 if (((i==1)&&(proc_up==MPI_PROC_NULL))||((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
+                #pragma omp parallel for
                 for(j=1; j<=num_col; j++)
                 {
-                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
-                        + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
+                    if (((j==1)&&(proc_left==MPI_PROC_NULL))||((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
+                    ys[i][j] = (F[i][j] + Cs[i][j][1]*ys1[i+1][j] + Cs[i][j][2]*ys1[i-1][j] +
+                        + Cs[i][j][3]*ys1[i][j+1] + Cs[i][j][4]*ys1[i][j-1])/Cs[i][j][0];
                 }
             }
         }
@@ -259,6 +261,7 @@ int main(int argc, char **argv)
 
     }
     printf("%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
+    #pragma omp parallel for
     for(int i=0; i<num_row+2; i++)
     {
         for (int j = 0; j < num_col+2; j++)
@@ -269,6 +272,7 @@ int main(int argc, char **argv)
     }
     free(Cs);
     free(ys);
+    free(ys1);
     free(ysol);
     free(F);
     free(x1);
