@@ -14,11 +14,11 @@ void fprint_res(const int N1, const int N2,
                 const double h1, const double h2,
                 const double eps, const int iter_count, const double rka);
 
-void solution(const double* restrict x1, const size_t N1,
-            const double* restrict x2, const size_t N2, double** ysol);
+void solution(double* x1, const size_t N1,
+            double* x2, const size_t N2, double** ysol);
 
-void edge_computing(const double* restrict x1, const size_t N1,
-            const double* restrict x2, const size_t N2, double** restrict ys);
+void edge_computing(double* x1, const size_t N1,
+             double* x2, const size_t N2, double** ys);
 
-double final_error(const double** ys, const double** ysol, const size_t N1, const size_t N2);
+double final_error(double** ys, double** ysol, const size_t N1, const size_t N2);
 #endif

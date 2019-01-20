@@ -5,9 +5,9 @@
 
 int main(int argc, char const *argv[])
 {
-    const size_t N1 = 1000, N2 = 1000;
-    const double *restrict x1 = linspace(0, 1, N1);
-    const double *restrict x2 = linspace(0, 1, N2);
+    const size_t N1 = 20, N2 = 20;
+    double *x1 = linspace(0, 1, N1);
+    double *x2 = linspace(0, 1, N2);
 
     const double h1 = 1.0/N1;
     const double h2 = 1.0/N2;
@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
 
 
     const size_t maxiter = 100;
-    const size_t maxiter_jacobi =1000;
+    const size_t maxiter_jacobi = 300;
 
     double** ys = calloc(N1, sizeof(double*));
     double** ysol = calloc(N1, sizeof(double*));

@@ -60,16 +60,16 @@ void fprint_res(const int N1, const int N2,
 
 }
 
-void solution(const double* restrict x1, const size_t N1,
-            const double* restrict x2, const size_t N2, double** ysol)
+void solution(double* x1, const size_t N1,
+            double* x2, const size_t N2, double** ysol)
 {
     for (int i=0; i<N1; i++)
         for (int j=0; j<N2; j++)
             ysol[i][j] = u(x1[i],x2[j]);
 }
 
-void edge_computing(const double* restrict x1, const size_t N1,
-            const double* restrict x2, const size_t N2, double** restrict ys)
+void edge_computing(double* x1, const size_t N1,
+             double* x2, const size_t N2, double** ys)
 {
     for(int i=0; i < N1; i++) {
         ys[i][0] = u(x1[i],0);
@@ -85,7 +85,7 @@ void edge_computing(const double* restrict x1, const size_t N1,
 
 }
 
-double final_error(const double** ys, const double** ysol, const size_t N1, const size_t N2)
+double final_error(double** ys, double** ysol, const size_t N1, const size_t N2)
 {
     double err = 0;
     for (int i=0; i<N1; i++)
