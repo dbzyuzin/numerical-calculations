@@ -1,11 +1,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mymetods.h"
 #include "task.h"
 
+const size_t N1 = 20, N2 = 20;
+
 int main(int argc, char const *argv[])
 {
-    const size_t N1 = 20, N2 = 20;
     double *x1 = linspace(0, 1, N1);
     double *x2 = linspace(0, 1, N2);
 
@@ -18,14 +20,24 @@ int main(int argc, char const *argv[])
     const size_t maxiter = 100;
     const size_t maxiter_jacobi = 300;
 
-    double** ys = calloc(N1, sizeof(double*));
+    double ** ys = calloc(N1, sizeof(double*));
+    ys[0] = calloc(N1 * N2, sizeof(double));
+    for (int i = 1; i < N1; i++) {
+        ys[i] = ys[0] + i * N2;
+    }
+    double ** ys1 = calloc(N1, sizeof(double*));
+    ys1[0] = calloc(N1 * N2, sizeof(double));
+    for (int i = 1; i < N1; i++) {
+        ys1[i] = ys1[0] + i * N2;
+    }
+
     double** ysol = calloc(N1, sizeof(double*));
     double* Csi;
     double*** Cs = calloc(N1, sizeof(double**));
     double** F = calloc(N1, sizeof(double*));
     for (int i=0; i<N1; i++)
     {
-        ys[i] = calloc(N2, sizeof(double));
+        // ys[i] = calloc(N2, sizeof(double));
         ysol[i] = calloc(N2, sizeof(double));
         F[i] = calloc(N2, sizeof(double));
         Cs[i] = calloc(N2, sizeof(double*));
