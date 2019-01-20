@@ -2,6 +2,46 @@
 #include <stdio.h>
 #include "mymetods.h"
 #include "task.h"
+#include "mpi.h"
+
+void grid(int nx, int ny, int np, int* o_np1, int* o_np2)
+{
+    double s;
+    int np1, np2;
+    if (np==1) {
+        np1 = 1;
+        np2 = 1;
+    } else {
+      s = sqrt(((double)np)) * ((double)nx) / ((double)ny);
+      np1 = floor(s);
+      if (s>0.5+((double)np1)) np1++;
+      np2 = np / np1;
+      if (np1*np2!=np) {
+        if (nx>ny) {np1 = np; np2 = 1;} else {np1 = 1; np2 = np;}
+      }
+    }
+    *o_np1 = np1;
+    *o_np2 = np2;
+}
+
+int MyNetInit(int* argc, char*** argv, int* np, int* mp)
+{
+    int i;
+
+    i = MPI_Init(argc,argv);
+    if (i != 0){
+        fprintf(stderr,"MPI initialization error");
+        MPI_Finalize();
+        exit(i);
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD,np);
+    MPI_Comm_rank(MPI_COMM_WORLD,mp);
+
+    // sleep(1);
+
+    return 0;
+}
 
 double* linspace(int xa, int xb, int N)
 {

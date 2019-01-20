@@ -6,28 +6,9 @@
 #include "task.h"
 #include "mpi.h"
 
-#define MPI_PROC_NULL 1
 #define m0_printf if (mp==0)printf
 
-int MyNetInit(int* argc, char*** argv, int* np, int* mp) {
-    int i;
-
-    i = MPI_Init(argc,argv);
-    if (i != 0){
-        fprintf(stderr,"MPI initialization error");
-        MPI_Finalize();
-        exit(i);
-    }
-
-    MPI_Comm_size(MPI_COMM_WORLD,np);
-    MPI_Comm_rank(MPI_COMM_WORLD,mp);
-
-    // sleep(1);
-
-    return 0;
-}
-
-int main(int argc, char const *argv[])
+int main(int argc, char  *argv[])
 {
     int mp, np;
 
@@ -49,9 +30,23 @@ int main(int argc, char const *argv[])
     int proc_left,proc_right, proc_down,proc_up;
     int limits1[2], limits2[2];
 
-    MyNetInit(&argc, &argv, &np, &mp);
+    int isper[] = {0,0}; //периодичность решетки
+    int dim[2]; //размерность
+    int coords[2];
+    dim[0] = dim[1] = 1;
+    MPI_Request req[8];
+    MPI_Status status[8];
+    MPI_Comm newcomm;
+    MPI_Datatype vectype;
 
-    proc_left = proc_right = proc_down = proc_up = 1;
+    MyNetInit(&argc, &argv, &np, &mp);
+    MPI_Cart_create(MPI_COMM_WORLD,2,dim,isper,1,&newcomm);
+    MPI_Cart_shift(newcomm,0,1,&proc_up,&proc_down);
+    MPI_Cart_shift(newcomm,1,1,&proc_left,&proc_right);
+    MPI_Comm_rank (newcomm, &mp); /* my place in MPI system */
+    MPI_Cart_coords(newcomm,mp,2,coords);
+
+    // proc_left = proc_right = proc_down = proc_up = 1;
     /* rows of matrix I have to process */
     start_row = 0;
     last_row = N1-1;
@@ -60,6 +55,9 @@ int main(int argc, char const *argv[])
     start_col = 0;
     last_col = N2-1;
     num_col = last_col - start_col + 1;
+
+    MPI_Type_vector(num_row,1,num_col+2,MPI_DOUBLE,&vectype);
+    MPI_Type_commit(&vectype);
 
     double ** ys = calloc(num_row+2, sizeof(double*));
     ys[0] = calloc((num_row+2) * (num_col+2), sizeof(double));
@@ -145,6 +143,24 @@ int main(int argc, char const *argv[])
             memcpy(ys[0],ys1[0], (num_row+2) * (num_col+2)*sizeof(double));
             if (test_solution(ys, Cs, F, num_row, num_col) < eps_j) break;
         }
+
+        MPI_Irecv(&ys[0][1],num_col,MPI_DOUBLE,
+        proc_up, 1215, MPI_COMM_WORLD, &req[0]);
+        MPI_Isend(&ys[num_row][1],num_col,MPI_DOUBLE,
+        proc_down, 1215, MPI_COMM_WORLD,&req[1]);
+        MPI_Irecv(&ys[num_row+1][1],num_col,MPI_DOUBLE,
+        proc_down, 1216, MPI_COMM_WORLD, &req[2]);
+        MPI_Isend(&ys[1][1],num_col,MPI_DOUBLE,
+        proc_up, 1216, MPI_COMM_WORLD,&req[3]);
+        MPI_Irecv(&ys[1][0],1,vectype,
+        proc_left, 1217, MPI_COMM_WORLD, &req[4]);
+        MPI_Isend(&ys[1][num_col],1,vectype,
+        proc_right, 1217, MPI_COMM_WORLD,&req[5]);
+        MPI_Irecv(&ys[1][num_col+1],1,vectype,
+        proc_right, 1218, MPI_COMM_WORLD, &req[6]);
+        MPI_Isend(&ys[1][1],1,vectype,
+        proc_left, 1218, MPI_COMM_WORLD,&req[7]);
+        MPI_Waitall(8,req,status);
     }
 
     for (int i = 0; i <  num_row+2; i++) {

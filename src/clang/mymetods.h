@@ -21,4 +21,8 @@ void edge_computing(double* x1, const size_t n1,
              double* x2, const size_t n2, double** ys);
 
 double final_error(double** ys, double** ysol, const size_t n1, const size_t n2);
+
+int MyNetInit(int* argc, char*** argv, int* np, int* mp);
+
+void grid(int nx, int ny, int np, int* o_np1, int* o_np2);
 #endif
