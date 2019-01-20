@@ -45,6 +45,13 @@ int MyNetInit(int* argc, char*** argv, int* np, int* mp) {
     return 0;
 }
 
+double dmax(const double x1, const double x2)
+{
+	if (x1 > x2)
+		return x1;
+	return x2;
+}
+
 double* linspace(int xa, int xb, int N)
 {
 	double *x = calloc(N, sizeof(double));
@@ -82,13 +89,14 @@ double f(const double u)
     return M_PI*M_PI*u*u*u;
 }
 
-// void solution(const double* restrict x1, const size_t N1,
-//             const double* restrict x2, const size_t N2, double** ysol)
-// {
-//     for (int i=0; i<N1; i++)
-//         for (int j=0; j<N2; j++)
-//             ysol[i][j] = u(x1[i],x2[j]);
-// }
+void solution(double*  x1, const size_t num_row,
+            double* x2, const size_t num_col, double** ysol)
+{
+    for(i=1; i<=num_row; i++)
+        for(j=1; j<=num_col; j++)
+            ysol[i][j] = u(x1[i-1],x2[j-1]);
+}
+
 
 
 int main(int argc, char **argv)
@@ -108,7 +116,7 @@ int main(int argc, char **argv)
     double t1;
     int np1, np2;
 
-    const size_t N1 = 20, N2 = 20;
+    const size_t N1 = 100, N2 = 100;
 
     const double h1 = 1.0/N1;
     const double h2 = 1.0/N2;
@@ -116,8 +124,8 @@ int main(int argc, char **argv)
     const double eps_j = 1e-5;
 
 
-    const size_t maxiter = 100;
-    const size_t maxiter_jacobi = 20;
+    const size_t maxiter = 500;
+    const size_t maxiter_jacobi = 300;
 
     MyNetInit(&argc, &argv, &np, &mp);
     grid(N1, N2, np, &dim[0], &dim[1]);
@@ -189,12 +197,10 @@ int main(int argc, char **argv)
             }
         }
 
-
-
     /****** iteration loop *************************/
     MPI_Barrier(newcomm);
     t1=MPI_Wtime();
-    for(it=1; it<=1; it++)
+    for(it=1; it<=maxiter; it++)
     {
         for(i=1; i<=num_row; i++)
         {
@@ -223,11 +229,13 @@ int main(int argc, char **argv)
                 if (((i==1)&&(proc_up==MPI_PROC_NULL))||((i==num_row)&&(proc_down==MPI_PROC_NULL))) continue;
                 for(j=1; j<=num_col; j++)
                 {
+                    if (((j==1)&&(proc_left==MPI_PROC_NULL))||((j==num_col)&&(proc_right==MPI_PROC_NULL))) continue;
                     ys[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
                 }
             }
         }
+
         MPI_Irecv(&ys[0][1],num_col,MPI_DOUBLE,
         proc_up, 1215, MPI_COMM_WORLD, &req[0]);
         MPI_Isend(&ys[num_row][1],num_col,MPI_DOUBLE,
@@ -246,7 +254,7 @@ int main(int argc, char **argv)
         proc_left, 1218, MPI_COMM_WORLD,&req[7]);
         MPI_Waitall(8,req,status);
 
-        // if (coords[0]==0 && coords[1]==1)
+        // if (coords[0]==1 && coords[1]==1 && it==1)
         //     for(i=0; i<=num_row+1; i++)
         //     {
         //         printf("\n");
@@ -258,7 +266,22 @@ int main(int argc, char **argv)
         // printf("\n");
 
     }
-    printf("%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
+
+    //Задаем точное решение
+    solution(x1+start_row, num_row, x2+start_col, num_col, ysol);
+
+    //вычисляем ошибку на сетке
+    double err = 0;
+    for(i=1; i<=num_row; i++)
+        for(j=1; j<=num_col; j++)
+            // if (fabs(ysol[i][j]-ys[i][j]) > err) {
+            //     err = fabs(ysol[i][j]-ys[i][j]);
+            //     if (coords[0]==1 && coords[1]==1)
+            //         printf("err: %f,      %dx%d,      %fx%f \n", err, i, j, ysol[i][j], ys[i][j]);
+            // }
+            err = dmax(fabs(ysol[i][j]-ys[i][j]), err);
+
+    printf("%d: Time of task=%lf, err %f, %d\n",mp,MPI_Wtime()-t1, err, it);
     for(int i=0; i<num_row+2; i++)
     {
         for (int j = 0; j < num_col+2; j++)
