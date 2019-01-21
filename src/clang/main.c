@@ -61,19 +61,19 @@ int main(int argc, char* argv[])
 
     double** ys = calloc(num_row+2, sizeof(double*));
     ys[0] = calloc((num_row+2) * (num_col+2), sizeof(double));
-    for (int i = 1; i < num_row+2; i++)
+    for (size_t i = 1; i < num_row+2; i++)
         ys[i] = ys[0] + i * (num_col+2);
 
     double** ys1 = calloc(num_row+2, sizeof(double*));
     ys1[0] = calloc((num_row+2) * (num_col+2), sizeof(double));
-    for (int i = 1; i < num_row+2; i++)
+    for (size_t i = 1; i < num_row+2; i++)
         ys1[i] = ys1[0] + i * (num_col+2);
 
     double** ysol = calloc(num_row+2, sizeof(double*));
     double* Csi;
     double*** Cs = calloc(num_row+2, sizeof(double**));
     double** F = calloc(num_row+2, sizeof(double*));
-    for (int i=0; i<num_row+2; i++)
+    for (size_t i=0; i<num_row+2; i++)
     {
         ysol[i] = calloc(num_col+2, sizeof(double));
         F[i] = calloc(num_col+2, sizeof(double));
@@ -86,8 +86,8 @@ int main(int argc, char* argv[])
         printf("CALC STARTED on %d*%d processors with %d*%d array, my part %dx%d\n",
             dim[0], dim[1], N1, N2, num_row, num_col);
 
-    for(int i = 1; i < num_row+1; i++)
-        for(int j=1; j < num_col+1; j++)
+    for(size_t i = 1; i < num_row+1; i++)
+        for(size_t j=1; j < num_col+1; j++)
         {
             if ((i==1)&&(proc_up==MPI_PROC_NULL)) 
             {
@@ -120,11 +120,11 @@ int main(int argc, char* argv[])
     // iteration loop
     MPI_Barrier(newcomm);
     t1 = MPI_Wtime();
-    int iter_count;
+    size_t iter_count;
     for (iter_count = 0; iter_count < maxiter;  iter_count++) 
     {
-        for (int i = limits1[0]; i < limits1[1]; i++)
-            for (int j = limits2[0]; j < limits2[1]; j++)
+        for (size_t i = limits1[0]; i < limits1[1]; i++)
+            for (size_t j = limits2[0]; j < limits2[1]; j++)
             {
                 Csi = Cs[i][j];
                 Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
@@ -143,10 +143,10 @@ int main(int argc, char* argv[])
         if (test_solution(ys, Cs, F, num_row, num_col) < eps) 
             break;
 
-        for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) 
+        for (size_t iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) 
         {
-            for (int i = limits1[0]; i <  limits1[1]; i++) {
-                for (int j = limits2[0]; j <  limits2[1]; j++){
+            for (size_t i = limits1[0]; i <  limits1[1]; i++) {
+                for (size_t j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
                 }
@@ -190,9 +190,9 @@ int main(int argc, char* argv[])
     if (mp==0) 
         print_res(N1, N2, h1, h2, eps, iter_count, yerr, time);
 
-    for(int i=0; i<num_row+2; i++)
+    for(size_t i=0; i<num_row+2; i++)
     {
-        for (int j = 0; j < num_col+2; j++)
+        for (size_t j = 0; j < num_col+2; j++)
             free(Cs[i][j]);
         free(Cs[i]);
         free(F[i]);

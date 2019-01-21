@@ -2,14 +2,16 @@
 #define MYMETHODS
 #include <stdlib.h>
 
-double* linspace(int xa, int xb, int N);
+double* linspace(const int xa, const int xb, const size_t N);
 
 double dmax(const double x1, const double x2);
 
 double test_solution(double** ys, double*** Cs, double** F, const size_t n1, const size_t n2);
+
 void print_res(const int n1, const int n2,
                 const double h1, const double h2,
                 const double eps, const int iter_count, const double rka, double time);
+                
 void fprint_res(const int n1, const int n2,
                 const double h1, const double h2,
                 const double eps, const int iter_count, const double rka);

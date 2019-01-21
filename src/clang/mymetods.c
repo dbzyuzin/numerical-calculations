@@ -37,28 +37,26 @@ int MyNetInit(int* argc, char*** argv, int* np, int* mp)
     return 0;
 }
 
-double* linspace(int xa, int xb, int N)
+double* linspace(const int xa, const int xb, const size_t N)
 {
 	double* x = calloc(N, sizeof(double));
     double h = (xb - xa)/(double)(N-1);
-    for (int i=0; i<N; i++)
+    for (size_t i = 0; i < N; i++)
         x[i] = xa + i*h;
 	return x;
 }
 
 double dmax(const double x1, const double x2)
 {
-	if (x1 > x2)
-		return x1;
-	return x2;
+	return x1 > x2 ? x1 : x2;
 }
 
 double test_solution(double** ys, double*** Cs, double** F, const size_t n1, const size_t n2)
 {
     double rka = 0.0;
 
-    for (int i = 1; i < n1+1; i++)
-        for (int j = 1; j < n2+1; j++)
+    for (size_t i = 1; i < n1+1; i++)
+        for (size_t j = 1; j < n2+1; j++)
             rka = dmax(rka, fabs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
                       + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
                       + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
@@ -94,8 +92,8 @@ void fprint_res(const int n1, const int n2,
 void solution(double* x1, const size_t n1,
             double* x2, const size_t n2, double** ysol)
 {
-    for (int i=1; i<n1+1; i++)
-        for (int j=1; j<n2+1; j++)
+    for (size_t i=1; i<n1+1; i++)
+        for (size_t j=1; j<n2+1; j++)
             ysol[i][j] = u(x1[i-1], x2[j-1]);
 }
 
@@ -103,11 +101,11 @@ void solution(double* x1, const size_t n1,
 void edge_computing(double* x1, const size_t n1,
              double* x2, const size_t n2, double** ys)
 {
-    for(int i=1; i < n1+1; i++) {
+    for (size_t i=1; i < n1+1; i++) {
         ys[i][1] = u(x1[i-1],0);
         ys[i][n2] = u(x1[i-1],1);
     }
-    for(int i=1; i < n2+1; i++) {
+    for (size_t i=1; i < n2+1; i++) {
         ys[1][i] = u(0, x2[i-1]);
         ys[n1][i] = u(1, x2[i-1]);
     }
@@ -116,8 +114,8 @@ void edge_computing(double* x1, const size_t n1,
 double final_error(double** ys, double** ysol, const size_t n1, const size_t n2)
 {
     double err = 0;
-    for (int i=1; i<n1+1; i++)
-        for (int j=1; j<n2+1; j++)
+    for (size_t i=1; i<n1+1; i++)
+        for (size_t j=1; j<n2+1; j++)
             err = dmax(fabs(ysol[i][j]-ys[i][j]), err);
     return err;
 }
