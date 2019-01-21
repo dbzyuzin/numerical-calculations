@@ -14,7 +14,7 @@ int main(int argc, char  *argv[])
     int mp, np;
 
 
-    const size_t N1 = 100, N2 = 100;
+    const size_t N1 = 200, N2 = 200;
 
     double *x1 = linspace(0, 1, N1);
     double *x2 = linspace(0, 1, N2);
