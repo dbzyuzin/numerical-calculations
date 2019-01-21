@@ -21,7 +21,6 @@ int main(int argc, char  *argv[])
     const double h1 = 1.0/N1;
     const double h2 = 1.0/N2;
     const double eps = 1e-5;
-    const double eps_j = 1e-5;
 
     const size_t maxiter = 100;
     const size_t maxiter_jacobi = 300;
@@ -32,7 +31,7 @@ int main(int argc, char  *argv[])
     double t1;
 
     int isper[] = {0,0}; //периодичность решетки
-    int dim[2]; //размерность
+    int dim[2];         //размерность
     int coords[2];
     MPI_Request req[8];
     MPI_Status status[8];
@@ -137,34 +136,18 @@ int main(int argc, char  *argv[])
             }
         }
 
-
-        // printf("%d: %f \n", mp, test_solution(ys, Cs, F, num_row, num_col));
-
         if (test_solution(ys, Cs, F, num_row, num_col) < eps) break;
 
-
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
-
             // #pragma omp parallel for collapse(2)
             for (int i = limits1[0]; i <  limits1[1]; i++) {
                 for (int j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
                         + Cs[i][j][3]*ys[i][j+1] + Cs[i][j][4]*ys[i][j-1])/Cs[i][j][0];
-
                 }
             }
 
             memcpy(ys[0],ys1[0], (num_row+2) * (num_col+2)*sizeof(double));
-            // if (mp==0 && iter_count_j==maxiter_jacobi-1 && iter_count==0){
-            //     for (int i = 0; i <  num_row+2; i++) {
-            //         printf("\n");
-            //         for (int j = 0; j <  num_col+2; j++){
-            //             printf("%6.3f ", ys[i][j]);
-            //
-            //         }
-            //     }
-            //     printf("\n");
-            // }
             MPI_Irecv(&ys[0][1],num_col,MPI_DOUBLE,
             proc_up, 1215, MPI_COMM_WORLD, &req[0]);
             MPI_Isend(&ys[num_row][1],num_col,MPI_DOUBLE,
@@ -182,14 +165,19 @@ int main(int argc, char  *argv[])
             MPI_Isend(&ys[1][1],1,vectype,
             proc_left, 1218, MPI_COMM_WORLD,&req[7]);
             MPI_Waitall(8,req,status);
-            // if (test_solution(ys, Cs, F, num_row, num_col) < eps_j) break;
         }
-
-
-
     }
 
-
+    // if (mp==0 && iter_count_j==maxiter_jacobi-1 && iter_count==0){
+    //     for (int i = 0; i <  num_row+2; i++) {
+    //         printf("\n");
+    //         for (int j = 0; j <  num_col+2; j++){
+    //             printf("%6.3f ", ys[i][j]);
+    //
+    //         }
+    //     }
+    //     printf("\n");
+    // }
 
 
     //Задаем точное решение
@@ -197,10 +185,17 @@ int main(int argc, char  *argv[])
 
     //вычисляем ошибку на сетке
     double yerr = final_error(ys, ysol, num_row, num_col);
+    if (np>1) {
+      double yerr1 = yerr; MPI_Allreduce(&yerr1,&yerr,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    }
 
+    //Вычисляем общее время работы
+    double time = MPI_Wtime()-t1;
+    if (np>1) {
+      double time1 = time; MPI_Allreduce(&time1,&time,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    }
     // выводим количество итераций и максимальную ошибку
-    printf("\n%d: Time of task=%lf\n",mp,MPI_Wtime()-t1);
-    if (mp==0) print_res(N1, N2, h1, h2, eps, iter_count, yerr);
+    if (mp==0) print_res(N1, N2, h1, h2, eps, iter_count, yerr, time);
 
 
     for(int i=0; i<num_row+2; i++)

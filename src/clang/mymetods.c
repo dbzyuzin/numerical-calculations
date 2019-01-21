@@ -77,12 +77,12 @@ double test_solution(double** ys, double*** Cs, double** F, const size_t n1, con
 
 void print_res(const int n1, const int n2,
                 const double h1, const double h2,
-                const double eps, const int iter_count, const double rka)
+                const double eps, const int iter_count, const double rka, double time)
 {
     printf("Параметры :\n%7s %7s %7s %7s %8s\n","N1", "N2", "h1", "h2", "eps");
 	printf("%7d %7d %7.3f %7.3f %8.0e\n\n",n1, n2, h1, h2, eps);
-	printf("Результаты:\n %10s %24s \n", "Iter count", "Max Fail");
-	printf(" %10d %24.10f\n", iter_count, rka);
+	printf("Результаты:\n %10s %24s %10s\n", "Iter count", "Max Fail", "Time");
+	printf(" %10d %24.10f %10.6f\n", iter_count, rka, time);
 }
 void fprint_res(const int n1, const int n2,
                 const double h1, const double h2,
