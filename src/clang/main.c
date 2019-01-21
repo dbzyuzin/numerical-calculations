@@ -5,6 +5,7 @@
 #include "mymetods.h"
 #include "task.h"
 #include "mpi.h"
+#include "omp.h"
 
 #define m0_printf if (mp==0)printf
 
@@ -13,7 +14,7 @@ int main(int argc, char  *argv[])
     int mp, np;
 
 
-    const size_t N1 = 20, N2 = 20;
+    const size_t N1 = 100, N2 = 100;
 
     double *x1 = linspace(0, 1, N1);
     double *x2 = linspace(0, 1, N2);
@@ -139,7 +140,8 @@ int main(int argc, char  *argv[])
         if (test_solution(ys, Cs, F, num_row, num_col) < eps) break;
 
         for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
-            // #pragma omp parallel for collapse(2)
+            // omp_set_num_threads(2);
+            // #pragma omp parallel for
             for (int i = limits1[0]; i <  limits1[1]; i++) {
                 for (int j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
