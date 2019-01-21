@@ -26,30 +26,23 @@ void grid(int nx, int ny, int np, int* o_np1, int* o_np2)
 
 int MyNetInit(int* argc, char*** argv, int* np, int* mp)
 {
-    int i;
-
-    i = MPI_Init(argc,argv);
-    if (i != 0){
-        fprintf(stderr,"MPI initialization error");
+    if (MPI_Init(argc,argv)!= 0)
+    {
+        perror("MPI initialization error");
         MPI_Finalize();
-        exit(i);
+        return -1;
     }
-
     MPI_Comm_size(MPI_COMM_WORLD,np);
     MPI_Comm_rank(MPI_COMM_WORLD,mp);
-
-    // sleep(1);
-
     return 0;
 }
 
 double* linspace(int xa, int xb, int N)
 {
-	double *x = calloc(N, sizeof(double));
+	double* x = calloc(N, sizeof(double));
     double h = (xb - xa)/(double)(N-1);
-    for (int i=0; i<N; i++){
+    for (int i=0; i<N; i++)
         x[i] = xa + i*h;
-    }
 	return x;
 }
 
@@ -64,13 +57,11 @@ double test_solution(double** ys, double*** Cs, double** F, const size_t n1, con
 {
     double rka = 0.0;
 
-    for (int i = 1; i < n1+1; i++){
-        for (int j = 1; j < n2+1; j++){
+    for (int i = 1; i < n1+1; i++)
+        for (int j = 1; j < n2+1; j++)
             rka = dmax(rka, fabs(F[i][j] + Cs[i][j][1]*ys[i+1][j] +
                       + Cs[i][j][2]*ys[i-1][j] + Cs[i][j][3]*ys[i][j+1] +
                       + Cs[i][j][4]*ys[i][j-1] - Cs[i][j][0]*ys[i][j]));
-		}
-	}
 
     return rka;
 }
@@ -97,7 +88,7 @@ void fprint_res(const int n1, const int n2,
 	fprintf(f, "%7d %7d %7.3f %7.3f %8.0e\n\n",n1, n2, h1, h2, eps);
 	fprintf(f, "Результаты:\n %10s %24s \n", "Iter count", "Max Fail");
 	fprintf(f, " %10d %24.10f\n", iter_count, rka);
-
+    fclose(f);
 }
 
 void solution(double* x1, const size_t n1,
@@ -105,7 +96,7 @@ void solution(double* x1, const size_t n1,
 {
     for (int i=1; i<n1+1; i++)
         for (int j=1; j<n2+1; j++)
-            ysol[i][j] = u(x1[i-1],x2[j-1]);
+            ysol[i][j] = u(x1[i-1], x2[j-1]);
 }
 
 //not for parallel version
@@ -120,7 +111,6 @@ void edge_computing(double* x1, const size_t n1,
         ys[1][i] = u(0, x2[i-1]);
         ys[n1][i] = u(1, x2[i-1]);
     }
-
 }
 
 double final_error(double** ys, double** ysol, const size_t n1, const size_t n2)

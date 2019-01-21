@@ -7,17 +7,14 @@
 #include "mpi.h"
 #include "omp.h"
 
-#define m0_printf if (mp==0)printf
-
-int main(int argc, char  *argv[])
+int main(int argc, char* argv[])
 {
     int mp, np;
 
-
     const size_t N1 = 200, N2 = 200;
 
-    double *x1 = linspace(0, 1, N1);
-    double *x2 = linspace(0, 1, N2);
+    double* x1 = linspace(0, 1, N1);
+    double* x2 = linspace(0, 1, N2);
 
     const double h1 = 1.0/N1;
     const double h2 = 1.0/N2;
@@ -32,22 +29,23 @@ int main(int argc, char  *argv[])
     double t1;
 
     int isper[] = {0,0}; //периодичность решетки
-    int dim[2];         //размерность
+    int dim[] = {0,0};         //размерность
     int coords[2];
     MPI_Request req[8];
     MPI_Status status[8];
     MPI_Comm newcomm;
     MPI_Datatype vectype;
 
-    MyNetInit(&argc, &argv, &np, &mp);
+    int ret = MyNetInit(&argc, &argv, &np, &mp);
+    if (ret)
+        return -1;
+
     grid(N1, N2, np, &dim[0], &dim[1]);
     MPI_Cart_create(MPI_COMM_WORLD,2,dim,isper,1,&newcomm);
     MPI_Cart_shift(newcomm,0,1,&proc_up,&proc_down);
     MPI_Cart_shift(newcomm,1,1,&proc_left,&proc_right);
     MPI_Comm_rank (newcomm, &mp); /* my place in MPI system */
     MPI_Cart_coords(newcomm,mp,2,coords);
-
-
 
     /* rows of matrix I have to process */
     start_row = (coords[0] * N1) / dim[0];
@@ -58,20 +56,18 @@ int main(int argc, char  *argv[])
     last_col = (((coords[1] + 1) * N2) / dim[1])-1;
     num_col = last_col - start_col + 1;
 
-
     MPI_Type_vector(num_row,1,num_col+2,MPI_DOUBLE,&vectype);
     MPI_Type_commit(&vectype);
 
-    double ** ys = calloc(num_row+2, sizeof(double*));
+    double** ys = calloc(num_row+2, sizeof(double*));
     ys[0] = calloc((num_row+2) * (num_col+2), sizeof(double));
-    for (int i = 1; i < num_row+2; i++) {
+    for (int i = 1; i < num_row+2; i++)
         ys[i] = ys[0] + i * (num_col+2);
-    }
-    double ** ys1 = calloc(num_row+2, sizeof(double*));
+
+    double** ys1 = calloc(num_row+2, sizeof(double*));
     ys1[0] = calloc((num_row+2) * (num_col+2), sizeof(double));
-    for (int i = 1; i < num_row+2; i++) {
+    for (int i = 1; i < num_row+2; i++)
         ys1[i] = ys1[0] + i * (num_col+2);
-    }
 
     double** ysol = calloc(num_row+2, sizeof(double*));
     double* Csi;
@@ -86,41 +82,50 @@ int main(int argc, char  *argv[])
             Cs[i][j] = calloc(5, sizeof(double));
     }
 
-    m0_printf("CALC STARTED on %d*%d processors with %d*%d array, my part %dx%d\n",dim[0],dim[1],N1,N2,num_row,num_col);
+    if (mp==0)
+        printf("CALC STARTED on %d*%d processors with %d*%d array, my part %dx%d\n",
+            dim[0], dim[1], N1, N2, num_row, num_col);
 
     for(int i = 1; i < num_row+1; i++)
         for(int j=1; j < num_col+1; j++)
         {
-            if ((i==1)&&(proc_up==MPI_PROC_NULL)) {
+            if ((i==1)&&(proc_up==MPI_PROC_NULL)) 
+            {
                 ys[i][j] = u(0, x2[start_col + j - 1]);
                 continue;
             }
-            if ((i==num_row)&&(proc_down==MPI_PROC_NULL)) {
+            if ((i==num_row)&&(proc_down==MPI_PROC_NULL)) 
+            {
                 ys[i][j] = u(1, x2[start_col + j - 1]);
                 continue;
             }
-            if ((j==1)&&(proc_left==MPI_PROC_NULL)) {
+            if ((j==1)&&(proc_left==MPI_PROC_NULL)) 
+            {
                 ys[i][j] = u(x1[start_row + i - 1], 0);
                 continue;
             }
-            if ((j==num_col)&&(proc_right==MPI_PROC_NULL)) {
+            if ((j==num_col)&&(proc_right==MPI_PROC_NULL)) 
+            {
                 ys[i][j] = u(x1[start_row + i - 1], 1);
                 continue;
             }
         }
-    memcpy(ys1[0],ys[0], (num_row+2) * (num_col+2)*sizeof(double));
+    memcpy(ys1[0], ys[0], (num_row+2)*(num_col+2)*sizeof(double));
 
-    limits1[0] = (proc_up==MPI_PROC_NULL) ? 2 : 1; limits1[1] = (proc_down==MPI_PROC_NULL) ? num_row : num_row+1;
-    limits2[0] = (proc_left==MPI_PROC_NULL) ? 2 : 1; limits2[1] = (proc_right==MPI_PROC_NULL) ? num_col : num_col+1;
+    limits1[0] = (proc_up==MPI_PROC_NULL) ? 2 : 1; 
+    limits1[1] = (proc_down==MPI_PROC_NULL) ? num_row : num_row+1;
+    limits2[0] = (proc_left==MPI_PROC_NULL) ? 2 : 1;
+    limits2[1] = (proc_right==MPI_PROC_NULL) ? num_col : num_col+1;
 
-    /****** iteration loop *************************/
+    // iteration loop
     MPI_Barrier(newcomm);
     t1 = MPI_Wtime();
     int iter_count;
-    for (iter_count = 0; iter_count < maxiter;  iter_count++) {
-
-        for (int i = limits1[0]; i <  limits1[1]; i++) {
-            for (int j = limits2[0]; j <  limits2[1]; j++){
+    for (iter_count = 0; iter_count < maxiter;  iter_count++) 
+    {
+        for (int i = limits1[0]; i < limits1[1]; i++)
+            for (int j = limits2[0]; j < limits2[1]; j++)
+            {
                 Csi = Cs[i][j];
                 Csi[0] = (h2/h1*(ki(ys[i+1][j], ys[i][j]) + ki(ys[i-1][j], ys[i][j])) +
                           + h1/h2*(ki(ys[i][j+1], ys[i][j]) +
@@ -133,15 +138,13 @@ int main(int argc, char  *argv[])
 
                 F[i][j] = h1*h2*f(ys[i][j]);
                 Cs[i][j] = Csi;
-
             }
-        }
 
-        if (test_solution(ys, Cs, F, num_row, num_col) < eps) break;
+        if (test_solution(ys, Cs, F, num_row, num_col) < eps) 
+            break;
 
-        for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) {
-            // omp_set_num_threads(2);
-            // #pragma omp parallel for
+        for (int iter_count_j = 0;  iter_count_j < maxiter_jacobi; iter_count_j++) 
+        {
             for (int i = limits1[0]; i <  limits1[1]; i++) {
                 for (int j = limits2[0]; j <  limits2[1]; j++){
                     ys1[i][j] = (F[i][j] + Cs[i][j][1]*ys[i+1][j] + Cs[i][j][2]*ys[i-1][j] +
@@ -170,35 +173,22 @@ int main(int argc, char  *argv[])
         }
     }
 
-    // if (mp==0 && iter_count_j==maxiter_jacobi-1 && iter_count==0){
-    //     for (int i = 0; i <  num_row+2; i++) {
-    //         printf("\n");
-    //         for (int j = 0; j <  num_col+2; j++){
-    //             printf("%6.3f ", ys[i][j]);
-    //
-    //         }
-    //     }
-    //     printf("\n");
-    // }
-
-
     //Задаем точное решение
     solution(x1+start_row, num_row, x2+start_col, num_col, ysol);
 
     //вычисляем ошибку на сетке
     double yerr = final_error(ys, ysol, num_row, num_col);
-    if (np>1) {
-      double yerr1 = yerr; MPI_Allreduce(&yerr1,&yerr,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
-    }
+    if (np>1)
+        double yerr1 = yerr; MPI_Allreduce(&yerr1,&yerr,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
 
     //Вычисляем общее время работы
     double time = MPI_Wtime()-t1;
-    if (np>1) {
-      double time1 = time; MPI_Allreduce(&time1,&time,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
-    }
-    // выводим количество итераций и максимальную ошибку
-    if (mp==0) print_res(N1, N2, h1, h2, eps, iter_count, yerr, time);
+    if (np>1)
+        double time1 = time; MPI_Allreduce(&time1,&time,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
 
+    // выводим количество итераций и максимальную ошибку
+    if (mp==0) 
+        print_res(N1, N2, h1, h2, eps, iter_count, yerr, time);
 
     for(int i=0; i<num_row+2; i++)
     {

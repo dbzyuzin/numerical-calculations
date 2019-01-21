@@ -11,6 +11,7 @@
 #define M_05_PI (0.5*M_PI)
 
 double k(const double u);
+
 double ki(const double u1, const double u2);
 
 double q(const double u);
